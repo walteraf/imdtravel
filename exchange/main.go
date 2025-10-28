@@ -13,7 +13,7 @@ func init() {
 }
 
 func main() {
-	http.HandleFunc("/exchange", getExchangeRateHandler)
+	http.HandleFunc("/convert", getExchangeRateHandler)
 	http.HandleFunc("/health", healthHandler)
 
 	port := ":8082"

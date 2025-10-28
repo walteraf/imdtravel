@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"bytes"
 
-	"github.com/google/uuid"
 )
 
 type BuyTicketRequest struct {
@@ -178,7 +178,7 @@ func getFlightInfo(flight, day string) (*FlightResponse, error) {
 }
 
 func getExchangeRate() (float64, error) {
-	url := fmt.Sprintf("%s/exchange", exchangeURL)
+	url := fmt.Sprintf("%s/convert", exchangeURL)
 	
 	client := &http.Client{Timeout: 1 * time.Second}
 	start := time.Now()
@@ -223,7 +223,7 @@ func sellTicket(flight, day string) (string, error) {
 	}
 
 	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Post(url, "application/json", jsonData)
+	resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("request failed: %w", err)
 	}
@@ -256,7 +256,7 @@ func registerBonus(user string, bonus int) error {
 	}
 
 	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Post(url, "application/json", jsonData)
+	resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
