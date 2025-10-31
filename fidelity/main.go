@@ -86,7 +86,7 @@ func registerBonusHandler(w http.ResponseWriter, r *http.Request) {
 	userPoints[req.User].Records = append(userPoints[req.User].Records, record)
 	mu.Unlock()
 
-	log.Printf("Bonus registered: user=%s, bonus=%d, total=%d", 
+	log.Printf("Bonus registered: user=%s, bonus=%d, total=%d",
 		req.User, req.Bonus, userPoints[req.User].TotalPoints)
 
 	response := map[string]interface{}{

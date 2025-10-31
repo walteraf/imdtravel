@@ -5,12 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"time"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func main() {
 	http.HandleFunc("/convert", getExchangeRateHandler)
@@ -32,9 +27,12 @@ func getExchangeRateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Gerar taxa de câmbio aleatória entre 5.0 e 6.0
-	// 1 dólar = entre 5 e 6 reais
-	exchangeRate := 5.0 + rand.Float64()*(6.0-5.0)
+	// rand.Intn(1001) gera um número entre [0, 1000]
+	// 5000 + [0, 1000] = [5000, 6000]
+	intValue := 5000 + rand.Intn(1001) // 1001 = (6000 - 5000 + 1)
+
+	// Convertemos para float dividindo por 1000.0
+	exchangeRate := float64(intValue) / 1000.0
 
 	log.Printf("Exchange rate generated: %.4f", exchangeRate)
 

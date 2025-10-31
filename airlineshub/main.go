@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -45,15 +44,11 @@ var (
 		"UA999-2025-11-30": {Flight: "UA999", Day: "2025-11-30", Value: 920.00},
 		"DL555-2025-12-05": {Flight: "DL555", Day: "2025-12-05", Value: 680.00},
 	}
-	
+
 	// Armazena transações realizadas
 	transactions = make(map[string]Transaction)
 	mu           sync.RWMutex
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func main() {
 	http.HandleFunc("/flight", getFlightHandler)
@@ -85,7 +80,7 @@ func getFlightHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := flightNumber + "-" + day
-	
+
 	mu.RLock()
 	flight, exists := flights[key]
 	mu.RUnlock()
