@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,8 +10,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"bytes"
-
 )
 
 type BuyTicketRequest struct {
@@ -156,7 +155,7 @@ func buyTicketHandler(w http.ResponseWriter, r *http.Request) {
 
 func getFlightInfo(flight, day string) (*FlightResponse, error) {
 	url := fmt.Sprintf("%s/flight?flight=%s&day=%s", airlinesHubURL, flight, day)
-	
+
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Get(url)
 	if err != nil {
@@ -179,13 +178,13 @@ func getFlightInfo(flight, day string) (*FlightResponse, error) {
 
 func getExchangeRate() (float64, error) {
 	url := fmt.Sprintf("%s/convert", exchangeURL)
-	
+
 	client := &http.Client{Timeout: 1 * time.Second}
 	start := time.Now()
-	
+
 	resp, err := client.Get(url)
 	elapsed := time.Since(start)
-	
+
 	if err != nil {
 		return 0, fmt.Errorf("request failed: %w", err)
 	}
@@ -211,12 +210,12 @@ func getExchangeRate() (float64, error) {
 
 func sellTicket(flight, day string) (string, error) {
 	url := fmt.Sprintf("%s/sell", airlinesHubURL)
-	
+
 	reqBody := SellRequest{
 		Flight: flight,
 		Day:    day,
 	}
-	
+
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal request: %w", err)
@@ -244,12 +243,12 @@ func sellTicket(flight, day string) (string, error) {
 
 func registerBonus(user string, bonus int) error {
 	url := fmt.Sprintf("%s/bonus", fidelityURL)
-	
+
 	reqBody := BonusRequest{
 		User:  user,
 		Bonus: bonus,
 	}
-	
+
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
 		return fmt.Errorf("failed to marshal request: %w", err)
