@@ -1,9 +1,9 @@
 # IMDTravel
 
 Desenvolvido por:
-Antonio Walter Araújo Filho
-André Luiz de Sena Liberato
-Pedro de Andrade Cursino
+* Antonio Walter Araújo Filho
+* André Luiz de Sena Liberato
+* Pedro de Andrade Cursino
 
 Este projeto é a implementação da versão "Baseline" do sistema IMDTravel, um sistema de microsserviços para compra de passagens aéreas.
 O objetivo é implementar a versão básica do sistema, com foco na comunicação entre os serviços via API REST e na execução de cada serviço em contêineres Docker distintos.
