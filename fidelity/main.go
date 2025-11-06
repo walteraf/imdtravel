@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math/rand"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -31,6 +33,10 @@ var (
 	mu         sync.RWMutex
 )
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 func main() {
 	http.HandleFunc("/bonus", registerBonusHandler)
 	http.HandleFunc("/points", getPointsHandler)
@@ -46,10 +52,19 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
 }
 
+// Request 4: Fail (Crash, 0.02, _)
+// 2% de chance de crashar (serviço para completamente)
 func registerBonusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+
+	// FALHA: Crash com 2% de probabilidade
+	if rand.Float64() < 0.02 {
+		log.Println("[FAULT] Request 4: Crash fault triggered - Service shutting down")
+		// Força o crash do serviço
+		os.Exit(1)
 	}
 
 	var req BonusRequest
