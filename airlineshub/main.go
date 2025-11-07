@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -48,6 +49,10 @@ var (
 	// Armazena transações realizadas
 	transactions = make(map[string]Transaction)
 	mu           sync.RWMutex
+
+    // Gerador de números aleatórios para simulação de falhas
+    rng   = rand.New(rand.NewSource(time.Now().UnixNano()))
+    rngMu sync.Mutex
 )
 
 func main() {
@@ -66,6 +71,16 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getFlightHandler(w http.ResponseWriter, r *http.Request) {
+    // Falha: Fail(Omission, 0.2, 0s) 
+    rngMu.Lock()
+    chance := rng.Float64()
+    rngMu.Unlock()
+
+    if chance < 0.2 { 
+        log.Printf("!!! FALHA SIMULADA (Omission): Request 1 (/flight) não irá responder.")
+        return
+    }
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
