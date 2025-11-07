@@ -49,7 +49,6 @@ var (
 	faultR3Mutex   sync.Mutex
 	faultR3Active  bool
 	faultR3EndTime time.Time
-	faultR1Mutex   sync.Mutex
 )
 
 func main() {
@@ -69,12 +68,10 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 func getFlightHandler(w http.ResponseWriter, r *http.Request) {
 	// Falha: Fail(Omission, 0.2, 0s)
-	faultR1Mutex.Lock()
 	if rand.Float64() < 0.2 {
 		log.Printf("!!! FALHA SIMULADA (Omission): Request 1 (/flight) não irá responder.")
 		return
 	}
-	faultR1Mutex.Unlock()
 
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
