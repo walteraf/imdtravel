@@ -44,12 +44,12 @@ var (
 		"UA999-2025-11-30": {Flight: "UA999", Day: "2025-11-30", Value: 920.00},
 		"DL555-2025-12-05": {Flight: "DL555", Day: "2025-12-05", Value: 680.00},
 	}
-
 	transactions   = make(map[string]Transaction)
 	mu             sync.RWMutex
 	faultR3Mutex   sync.Mutex
 	faultR3Active  bool
 	faultR3EndTime time.Time
+	rngMu          sync.Mutex
 )
 
 func main() {
@@ -68,6 +68,16 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getFlightHandler(w http.ResponseWriter, r *http.Request) {
+	// Falha: Fail(Omission, 0.2, 0s)
+	rngMu.Lock()
+	chance := rand.Float64()
+	rngMu.Unlock()
+
+	if chance < 0.2 {
+		log.Printf("!!! FALHA SIMULADA (Omission): Request 1 (/flight) não irá responder.")
+		return
+	}
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
