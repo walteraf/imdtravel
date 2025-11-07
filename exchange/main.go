@@ -5,6 +5,14 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"sync"
+	"time"
+)
+
+var (
+	faultR2Mutex   sync.Mutex
+	faultR2Active  bool
+	faultR2EndTime time.Time
 )
 
 func main() {
@@ -27,6 +35,34 @@ func getExchangeRateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	const (
+		probR2     = 0.1
+		durationR2 = 5 * time.Second
+	)
+
+	faultR2Mutex.Lock()
+	now := time.Now()
+
+	if faultR2Active && now.Before(faultR2EndTime) {
+		log.Println("[FAULT] Request 2: Error STATE active. Returning HTTP 500.")
+		faultR2Mutex.Unlock()
+		http.Error(w, "Internal Server Error (Simulated Fault State)", http.StatusInternalServerError)
+		return
+
+	} else {
+		faultR2Active = false
+
+		if rand.Float64() < probR2 {
+			log.Println("[FAULT] Request 2: Error fault TRIGGERED. State active for 5s.")
+			faultR2Active = true
+			faultR2EndTime = now.Add(durationR2)
+
+			faultR2Mutex.Unlock()
+			http.Error(w, "Internal Server Error (Simulated Fault State)", http.StatusInternalServerError)
+			return
+		}
+	}
+	faultR2Mutex.Unlock()
 	// rand.Intn(1001) gera um número entre [0, 1000]
 	// 5000 + [0, 1000] = [5000, 6000]
 	intValue := 5000 + rand.Intn(1001) // 1001 = (6000 - 5000 + 1)
