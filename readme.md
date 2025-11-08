@@ -103,3 +103,35 @@ curl -X POST http://localhost:8080/buyTicket \
   -H "Content-Type: application/json" \
   -d '{"flight":"FL123","day":"2025-11-01","user":"user-id"}'
 ```
+
+## 💣 Simulação de Falhas (Tolerância a Falhas)
+
+Este projeto implementa a simulação de falhas. A especificação `Fail (Type, Probability, Duration)` foi implementada da seguinte maneira:
+
+### Lógica de Implementação (Stateful)
+
+Para falhas com `Duration` (Duração) maior que zero (como `Error` e `Time`), a implementação é *stateful* (com estado):
+
+1.  **Probability (Probabilidade):** É a chance (ex: 10%) de uma requisição *ativar* o estado de falha do serviço.
+2.  **Duration (Duração):** Uma vez ativado, o serviço permanece em "estado de falha" pelo tempo especificado (ex: 10 segundos).
+3.  **Type (Tipo):** Representa o *efeito* que será aplicado a **todas** as requisições que chegarem ao serviço *enquanto* ele estiver no "estado de falha" (ex: atrasar 5s).
+
+Para falhas com `Duration` zero ou não definida (como `Omission` e `Crash`), a implementação é *stateless* (sem estado), e o efeito é aplicado apenas na requisição que ativou a probabilidade.
+
+### Detalhamento por Requisição
+
+* **Request 1: `Fail (Omission, 0.2, 0s)`**
+    * **Local:** `airlineshub/main.go` (no endpoint `/flight`).
+    * **Implementação:** *Stateless*. Há 20% de chance de a requisição simplesmente não responder (um `return` sem escrita de resposta), simulando a omissão.
+
+* **Request 2: `Fail (Error, 0.1, 5s)`**
+    * **Local:** `exchange/main.go` (no endpoint `/convert`).
+    * **Implementação:** *Stateful*. Há 10% de chance de ativar um estado de falha que dura **5 segundos**. Durante esse período, todas as requisições ao `/convert` retornam imediatamente um `HTTP 500` (Erro).
+
+* **Request 3: `Fail (Time=5s, 0.1, 10s)`**
+    * **Local:** `airlineshub/main.go` (no endpoint `/sell`).
+    * **Implementação:** *Stateful*. Há 10% de chance de ativar um estado de falha que dura **10 segundos**. Durante esse período, todas as requisições ao `/sell` sofrem um atraso (efeito `Time`) de **5 segundos** antes de serem processadas.
+
+* **Request 4: `Fail (Crash, 0.02, _)`**
+    * **Local:** `fidelity/main.go` (no endpoint `/bonus`).
+    * **Implementação:** *Stateless*. Há 2% de chance de o serviço forçar um `os.Exit(1)`, simulando um Crash. O `docker-compose.yml` está configurado com `restart: always` para que o contêiner reinicie automaticamente.
