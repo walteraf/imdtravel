@@ -5,7 +5,7 @@ Desenvolvido por:
 * André Luiz de Sena Liberato
 * Pedro de Andrade Cursino
 
-Este projeto é a implementação da versão "Baseline" do sistema IMDTravel, um sistema de microsserviços para compra de passagens aéreas.
+Este projeto é a implementação da versão "Baseline" + "COMFALHAS" do sistema IMDTravel, um sistema de microsserviços para compra de passagens aéreas.
 O objetivo é implementar a versão básica do sistema, com foco na comunicação entre os serviços via API REST e na execução de cada serviço em contêineres Docker distintos.
 
 ## 🏛️ Arquitetura do Sistema
