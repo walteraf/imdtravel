@@ -56,7 +56,7 @@ O sistema é composto por quatro microsserviços, orquestrados pelo `docker-comp
     ```
 
 4.  O sistema estará pronto. Os serviços estarão disponíveis nas portas `8080` (IMDTravel), `8081` (AirlinesHub), `8082` (Exchange) e `8083` (Fidelity).
-## Endpoints
+## 🔗 Endpoints
 - GET /health  
   Retorna 200 com `{"status":"healthy"}`
 
@@ -91,7 +91,7 @@ O sistema é composto por quatro microsserviços, orquestrados pelo `docker-comp
   ```
   Em erro retorna `success: false` e campo `error`.
 
-## Exemplos curl
+## 🧪 Exemplos curl
 Health:
 ```bash
 curl http://localhost:8080/health
