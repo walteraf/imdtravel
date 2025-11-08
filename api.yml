@@ -1,0 +1,268 @@
+openapi: 3.0.0
+info:
+  title: IMDTravel Microservices (Full System)
+  description: "Documentação OpenAPI completa para todos os microsserviços do sistema IMDTravel, incluindo o 'imdtravel' (façade) e os serviços 'airlineshub', 'exchange', e 'fidelity' para testes diretos."
+  version: 1.0.0
+
+# Define todos os servidores/portas. Você pode trocar entre eles no Postman.
+servers:
+  - url: http://localhost:8080
+    description: IMDTravel
+  - url: http://localhost:8081
+    description: AirlinesHub
+  - url: http://localhost:8082
+    description: Exchange
+  - url: http://localhost:8083
+    description: Fidelity
+
+# Tags para agrupar os endpoints por serviço
+tags:
+  - name: IMDTravel
+    description: Endpoint principal do orquestrador.
+  - name: AirlinesHub
+    description: Gerencia voos e vendas.
+  - name: Exchange
+    description: Fornece taxa de câmbio.
+  - name: Fidelity
+    description: Gerencia pontos de bônus.
+
+paths:
+  # --- Endpoints Comuns (Health Check) ---
+  /health:
+    get:
+      summary: Health Check (Disponível em TODOS os serviços)
+      tags: [IMDTravel, AirlinesHub, Exchange, Fidelity]
+      description: Verifica se o serviço está em execução. (Funciona em qualquer servidor selecionado).
+      responses:
+        '200':
+          description: Serviço está saudável (healthy).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  # --- IMDTravel ---
+  /buyTicket:
+    post:
+      summary: Comprar uma passagem (Orquestrador)
+      tags: [IMDTravel]
+      description: Inicia o fluxo de compra de uma passagem aérea.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuyTicketRequest'
+      responses:
+        '200':
+          description: Passagem comprada com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuyTicketResponseSuccess'
+        '400':
+          description: Requisição inválida (JSON mal formatado ou campos faltando).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuyTicketResponseError'
+        '500':
+          description: Erro interno no servidor (falha em microsserviço).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuyTicketResponseError'
+
+  # --- AirlinesHub ---
+  /flight:
+    get:
+      summary: (AirlinesHub) Consultar voo
+      tags: [AirlinesHub]
+      description: Consulta um voo específico por 'flight' e 'day'.
+      parameters:
+        - in: query
+          name: flight
+          required: true
+          schema:
+            type: string
+          example: "AA123"
+        - in: query
+          name: day
+          required: true
+          schema:
+            type: string
+          example: "2025-11-15"
+      responses:
+        '200':
+          description: Voo encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flight'
+        '404':
+          description: Voo não encontrado.
+
+  /sell:
+    post:
+      summary: (AirlinesHub) Registrar venda de ticket
+      tags: [AirlinesHub]
+      description: Registra a venda de um ticket (simulado).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SellRequest'
+      responses:
+        '201': #
+          description: Venda registrada com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SellResponse'
+        '404':
+          description: Voo não encontrado para venda.
+
+  # --- Exchange ---
+  /convert:
+    get:
+      summary: (Exchange) Obter taxa de câmbio
+      tags: [Exchange]
+      description: Retorna a taxa de câmbio atual (USD -> BRL).
+      responses:
+        '200':
+          description: Taxa de câmbio.
+          content:
+            application/json:
+              schema:
+                type: number
+                format: double
+                example: 5.25
+        '500':
+          description: Erro simulado (Falha Request 2).
+
+  # --- Fidelity ---
+  /bonus:
+    post:
+      summary: (Fidelity) Registrar bônus para usuário
+      tags: [Fidelity]
+      description: Adiciona pontos de bônus a um usuário.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BonusRequest'
+      responses:
+        '200':
+          description: Bônus registrado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BonusResponse'
+        '400':
+          description: 'Requisição inválida (ex: bônus <= 0).'
+
+  /points:
+    get:
+      summary: (Fidelity) Consultar pontos de um usuário
+      tags: [Fidelity]
+      description: Retorna o total de pontos e o histórico de um usuário.
+      parameters:
+        - in: query
+          name: user
+          required: true
+          schema:
+            type: string
+          example: "usuario-teste-123"
+      responses:
+        '200':
+          description: Pontos do usuário (retorna 0 se usuário não existir).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPoints'
+
+components:
+  schemas:
+    # --- Schema Comum ---
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "healthy"
+
+    # --- Schemas IMDTravel ---
+    BuyTicketRequest:
+      type: object
+      required: [flight, day, user]
+      properties:
+        flight: { type: string, example: "AA123" }
+        day: { type: string, example: "2025-11-15" }
+        user: { type: string, example: "usuario-teste-123" }
+    BuyTicketResponseSuccess:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string, example: "Ticket purchased successfully" }
+        transaction_id: { type: string, example: "a1b2c3d4-..." }
+        flight: { type: string, example: "AA123" }
+        day: { type: string, example: "2025-11-15" }
+        value_usd: { type: number, format: double, example: 500.00 }
+        value_brl: { type: number, format: double, example: 2550.00 }
+        exchange_rate: { type: number, format: double, example: 5.10 }
+        bonus_points: { type: integer, example: 500 }
+    BuyTicketResponseError:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error: { type: string, example: "Failed to get flight info: ..." }
+
+    # --- Schemas AirlinesHub ---
+    Flight:
+      type: object
+      properties:
+        flight: { type: string, example: "AA123" }
+        day: { type: string, example: "2025-11-15" }
+        value: { type: number, format: double, example: 500.00 }
+    SellRequest:
+      type: object
+      properties:
+        flight: { type: string, example: "AA123" }
+        day: { type: string, example: "2025-11-15" }
+    SellResponse:
+      type: object
+      properties:
+        id: { type: string, example: "tx-uuid-..." }
+
+    # --- Schemas Fidelity ---
+    BonusRequest:
+      type: object
+      properties:
+        user: { type: string, example: "usuario-teste-123" }
+        bonus: { type: integer, example: 500 }
+    BonusResponse:
+      type: object
+      description: Resposta do endpoint /bonus.
+      properties:
+        success: { type: boolean, example: true }
+        user: { type: string, example: "usuario-teste-123" }
+        bonus_added: { type: integer, example: 500 }
+        total_points: { type: integer, example: 1500 }
+    BonusRecord:
+      type: object
+      properties:
+        User: { type: string }
+        Bonus: { type: integer }
+        Timestamp: { type: string, format: date-time }
+    UserPoints:
+      type: object
+      description: Resposta do endpoint /points.
+      properties:
+        User: { type: string, example: "usuario-teste-123" }
+        TotalPoints: { type: integer, example: 1500 }
+        Records:
+          type: array
+          items:
+            $ref: '#/components/schemas/BonusRecord'

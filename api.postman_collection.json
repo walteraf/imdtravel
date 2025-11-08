@@ -1,0 +1,816 @@
+{
+	"info": {
+		"_postman_id": "b2ff6a7f-fe56-4bde-b5d1-158a3097663b",
+		"name": "IMDTravel Microservices (Full System)",
+		"description": "Documentação OpenAPI completa para todos os microsserviços do sistema IMDTravel, incluindo o 'imdtravel' e os serviços 'airlineshub', 'exchange', e 'fidelity' para testes diretos.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "26870099",
+		"_collection_link": "https://imdtravel.postman.co/workspace/3476fb59-d053-4880-9328-7a7743cd064a/collection/26870099-b2ff6a7f-fe56-4bde-b5d1-158a3097663b?action=share&source=collection_link&creator=26870099"
+	},
+	"item": [
+		{
+			"name": "health",
+			"item": [
+				{
+					"name": "Health Check (Disponível em TODOS os serviços)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{IMDTravelURL}}/health",
+							"host": [
+								"{{IMDTravelURL}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Verifica se o serviço está em execução. (Funciona em qualquer servidor selecionado)."
+					},
+					"response": [
+						{
+							"name": "Serviço está saudável (healthy).",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/health",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"health"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"status\": \"healthy\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "buyTicket",
+			"item": [
+				{
+					"name": "Comprar uma passagem (Orquestrador)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"flight\": \"AA123\",\n  \"day\": \"2025-11-15\",\n  \"user\": \"usuario-teste-123\"\n}",
+							"options": {
+								"raw": {
+									"headerFamily": "json",
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{IMDTravelURL}}/buyTicket",
+							"host": [
+								"{{IMDTravelURL}}"
+							],
+							"path": [
+								"buyTicket"
+							]
+						},
+						"description": "Inicia o fluxo de compra de uma passagem aérea."
+					},
+					"response": [
+						{
+							"name": "Passagem comprada com sucesso.",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"flight\": \"AA123\",\n  \"day\": \"2025-11-15\",\n  \"user\": \"usuario-teste-123\"\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/buyTicket",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"buyTicket"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": true,\n  \"message\": \"Ticket purchased successfully\",\n  \"transaction_id\": \"a1b2c3d4-...\",\n  \"flight\": \"AA123\",\n  \"day\": \"2025-11-15\",\n  \"value_usd\": 500,\n  \"value_brl\": 2550,\n  \"exchange_rate\": 5.1,\n  \"bonus_points\": 500\n}"
+						},
+						{
+							"name": "Requisição inválida (JSON mal formatado ou campos faltando).",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"flight\": \"AA123\",\n  \"day\": \"2025-11-15\",\n  \"user\": \"usuario-teste-123\"\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/buyTicket",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"buyTicket"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": false,\n  \"error\": \"Failed to get flight info: ...\"\n}"
+						},
+						{
+							"name": "Erro interno no servidor (falha em microsserviço).",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"flight\": \"AA123\",\n  \"day\": \"2025-11-15\",\n  \"user\": \"usuario-teste-123\"\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/buyTicket",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"buyTicket"
+									]
+								}
+							},
+							"status": "Internal Server Error",
+							"code": 500,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": false,\n  \"error\": \"Failed to get flight info: ...\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "flight",
+			"item": [
+				{
+					"name": "(AirlinesHub) Consultar voo",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{AirlinesHubURL}}/flight?flight=AA123&day=2025-11-15",
+							"host": [
+								"{{AirlinesHubURL}}"
+							],
+							"path": [
+								"flight"
+							],
+							"query": [
+								{
+									"key": "flight",
+									"value": "AA123"
+								},
+								{
+									"key": "day",
+									"value": "2025-11-15"
+								}
+							]
+						},
+						"description": "Consulta um voo específico por 'flight' e 'day'."
+					},
+					"response": [
+						{
+							"name": "Voo encontrado.",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/flight?flight=AA123&day=2025-11-15",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"flight"
+									],
+									"query": [
+										{
+											"key": "flight",
+											"value": "AA123"
+										},
+										{
+											"key": "day",
+											"value": "2025-11-15"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"flight\": \"AA123\",\n  \"day\": \"2025-11-15\",\n  \"value\": 500\n}"
+						},
+						{
+							"name": "Voo não encontrado.",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/flight?flight=AA123&day=2025-11-15",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"flight"
+									],
+									"query": [
+										{
+											"key": "flight",
+											"value": "AA123"
+										},
+										{
+											"key": "day",
+											"value": "2025-11-15"
+										}
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "text",
+							"header": [],
+							"cookie": [],
+							"body": null
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "sell",
+			"item": [
+				{
+					"name": "(AirlinesHub) Registrar venda de ticket",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"flight\": \"AA123\",\n  \"day\": \"2025-11-15\"\n}",
+							"options": {
+								"raw": {
+									"headerFamily": "json",
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{AirlinesHubURL}}/sell",
+							"host": [
+								"{{AirlinesHubURL}}"
+							],
+							"path": [
+								"sell"
+							]
+						},
+						"description": "Registra a venda de um ticket (simulado)."
+					},
+					"response": [
+						{
+							"name": "Venda registrada com sucesso.",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"flight\": \"AA123\",\n  \"day\": \"2025-11-15\"\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/sell",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"sell"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"id\": \"tx-uuid-...\"\n}"
+						},
+						{
+							"name": "Voo não encontrado para venda.",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"flight\": \"AA123\",\n  \"day\": \"2025-11-15\"\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/sell",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"sell"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "text",
+							"header": [],
+							"cookie": [],
+							"body": null
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "convert",
+			"item": [
+				{
+					"name": "(Exchange) Obter taxa de câmbio",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{ExchangeURL}}/convert",
+							"host": [
+								"{{ExchangeURL}}"
+							],
+							"path": [
+								"convert"
+							]
+						},
+						"description": "Retorna a taxa de câmbio atual (USD -> BRL)."
+					},
+					"response": [
+						{
+							"name": "Taxa de câmbio.",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/convert",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"convert"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "5.25"
+						},
+						{
+							"name": "Erro simulado (Falha Request 2).",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/convert",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"convert"
+									]
+								}
+							},
+							"status": "Internal Server Error",
+							"code": 500,
+							"_postman_previewlanguage": "text",
+							"header": [],
+							"cookie": [],
+							"body": null
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "bonus",
+			"item": [
+				{
+					"name": "(Fidelity) Registrar bônus para usuário",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": \"usuario-teste-123\",\n  \"bonus\": 500\n}",
+							"options": {
+								"raw": {
+									"headerFamily": "json",
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{FidelityURL}}/bonus",
+							"host": [
+								"{{FidelityURL}}"
+							],
+							"path": [
+								"bonus"
+							]
+						},
+						"description": "Adiciona pontos de bônus a um usuário."
+					},
+					"response": [
+						{
+							"name": "Bônus registrado com sucesso.",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user\": \"usuario-teste-123\",\n  \"bonus\": 500\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/bonus",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"bonus"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": true,\n  \"user\": \"usuario-teste-123\",\n  \"bonus_added\": 500,\n  \"total_points\": 1500\n}"
+						},
+						{
+							"name": "Requisição inválida (ex: bônus <= 0).",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user\": \"usuario-teste-123\",\n  \"bonus\": 500\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/bonus",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"bonus"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "text",
+							"header": [],
+							"cookie": [],
+							"body": null
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "points",
+			"item": [
+				{
+					"name": "(Fidelity) Consultar pontos de um usuário",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{FidelityURL}}/points?user=usuario-teste-123",
+							"host": [
+								"{{FidelityURL}}"
+							],
+							"path": [
+								"points"
+							],
+							"query": [
+								{
+									"key": "user",
+									"value": "usuario-teste-123"
+								}
+							]
+						},
+						"description": "Retorna o total de pontos e o histórico de um usuário."
+					},
+					"response": [
+						{
+							"name": "Pontos do usuário (retorna 0 se usuário não existir).",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/points?user=usuario-teste-123",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"points"
+									],
+									"query": [
+										{
+											"key": "user",
+											"value": "usuario-teste-123"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"User\": \"usuario-teste-123\",\n  \"TotalPoints\": 1500,\n  \"Records\": [\n    {\n      \"User\": \"string\",\n      \"Bonus\": 1797,\n      \"Timestamp\": \"1983-04-19T21:50:48.514Z\"\n    },\n    {\n      \"User\": \"string\",\n      \"Bonus\": 7067,\n      \"Timestamp\": \"1983-02-24T01:51:51.714Z\"\n    }\n  ]\n}"
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "IMDTravelURL",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "AirlinesHubURL",
+			"value": ""
+		},
+		{
+			"key": "ExchangeURL",
+			"value": ""
+		},
+		{
+			"key": "FidelityURL",
+			"value": "",
+			"type": "default"
+		}
+	]
+}
