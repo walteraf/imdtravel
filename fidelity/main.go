@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"os"
 	"sync"
@@ -32,10 +32,6 @@ var (
 	userPoints = make(map[string]*UserPoints)
 	mu         sync.RWMutex
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func main() {
 	http.HandleFunc("/bonus", registerBonusHandler)

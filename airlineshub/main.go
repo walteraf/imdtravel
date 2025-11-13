@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"sync"
 	"time"
@@ -34,7 +34,6 @@ type Transaction struct {
 }
 
 var (
-	// Simulação de banco de dados de voos
 	flights = map[string]Flight{
 		"AA123-2025-11-15": {Flight: "AA123", Day: "2025-11-15", Value: 500.00},
 		"AA123-2025-11-20": {Flight: "AA123", Day: "2025-11-20", Value: 550.00},
@@ -45,14 +44,11 @@ var (
 		"UA999-2025-11-30": {Flight: "UA999", Day: "2025-11-30", Value: 920.00},
 		"DL555-2025-12-05": {Flight: "DL555", Day: "2025-12-05", Value: 680.00},
 	}
-
-	// Armazena transações realizadas
-	transactions = make(map[string]Transaction)
-	mu           sync.RWMutex
-
-    // Gerador de números aleatórios para simulação de falhas
-    rng   = rand.New(rand.NewSource(time.Now().UnixNano()))
-    rngMu sync.Mutex
+	transactions   = make(map[string]Transaction)
+	mu             sync.RWMutex
+	faultR3Mutex   sync.Mutex
+	faultR3Active  bool
+	faultR3EndTime time.Time
 )
 
 func main() {
@@ -71,16 +67,12 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getFlightHandler(w http.ResponseWriter, r *http.Request) {
-    // Falha: Fail(Omission, 0.2, 0s) 
-    rngMu.Lock()
-    chance := rng.Float64()
-    rngMu.Unlock()
-
-    if chance < 0.2 { 
-        log.Printf("!!! FALHA SIMULADA (Omission): Request 1 (/flight) não irá responder.")
+	// Falha: Fail(Omission, 0.2, 0s)
+	if rand.Float64() < 0.2 {
+		log.Printf("!!! FALHA SIMULADA (Omission): Request 1 (/flight) não irá responder.")
 		time.Sleep(6 * time.Second)
-        return
-    }
+		return
+	}
 
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -117,6 +109,35 @@ func sellTicketHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+
+	const (
+		probR3     = 0.1
+		effectR3   = 5 * time.Second
+		durationR3 = 10 * time.Second
+	)
+
+	applyR3Fault := false
+	faultR3Mutex.Lock()
+	now := time.Now()
+
+	if faultR3Active && now.Before(faultR3EndTime) {
+		log.Println("[FAULT] Request 3: Time fault STATE active. Applying 5s delay.")
+		applyR3Fault = true
+	} else {
+		faultR3Active = false
+
+		if rand.Float64() < probR3 {
+			log.Println("[FAULT] Request 3: Time fault TRIGGERED. State active for 10s.")
+			faultR3Active = true
+			faultR3EndTime = now.Add(durationR3)
+			applyR3Fault = true
+		}
+	}
+	faultR3Mutex.Unlock()
+
+	if applyR3Fault {
+		time.Sleep(effectR3)
 	}
 
 	var req SellRequest
