@@ -78,6 +78,7 @@ func getFlightHandler(w http.ResponseWriter, r *http.Request) {
 
     if chance < 0.2 { 
         log.Printf("!!! FALHA SIMULADA (Omission): Request 1 (/flight) não irá responder.")
+		time.Sleep(6 * time.Second)
         return
     }
 
