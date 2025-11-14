@@ -201,6 +201,7 @@ components:
         flight: { type: string, example: "AA123" }
         day: { type: string, example: "2025-11-15" }
         user: { type: string, example: "usuario-teste-123" }
+        ft: { type: boolean, example: true }
     BuyTicketResponseSuccess:
       type: object
       properties:
@@ -213,6 +214,7 @@ components:
         value_brl: { type: number, format: double, example: 2550.00 }
         exchange_rate: { type: number, format: double, example: 5.10 }
         bonus_points: { type: integer, example: 500 }
+        bonus_status: { type: string, example: "processed" }
     BuyTicketResponseError:
       type: object
       properties:

@@ -57,7 +57,7 @@ func registerBonusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// FALHA: Crash com 2% de probabilidade
-	if rand.Float64() < 0.02 {
+	if rand.Float64() < 0.5 {
 		log.Println("[FAULT] Request 4: Crash fault triggered - Service shutting down")
 		// Força o crash do serviço
 		os.Exit(1)
