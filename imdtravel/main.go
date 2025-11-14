@@ -161,7 +161,7 @@ func buyTicketHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// SEM TOLERÂNCIA A FALHAS: Venda falha se Fidelity falhar
-		if err := registerBonus(req.User, bonusPoints); err != nil {
+		if err := registerBonus(req.User, bonusPoints, req.FT); err != nil {
 			log.Printf("Error registering bonus: %v", err)
 			respondError(w, fmt.Sprintf("Failed to register bonus: %v", err), http.StatusInternalServerError)
 			return
@@ -356,7 +356,7 @@ func registerBonusWithRetry(user string, bonus int, maxRetries int) error {
 	var lastErr error
 	
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		err := registerBonus(user, bonus)
+		err := registerBonus(user, bonus, true)
 		if err == nil {
 			if attempt > 1 {
 				log.Printf("[FAULT TOLERANCE] Bonus registered after %d attempts", attempt)
@@ -444,7 +444,7 @@ func processPendingBonuses() {
 			pending.Attempts++
 			pending.LastAttempt = time.Now()
 			
-			err := registerBonus(pending.User, pending.Bonus)
+			err := registerBonus(pending.User, pending.Bonus, true)
 			if err == nil {
 				log.Printf("[PENDING QUEUE] Successfully processed bonus for user %s after %d attempts", 
 					pending.User, pending.Attempts)
