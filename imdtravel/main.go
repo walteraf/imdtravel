@@ -18,7 +18,7 @@ type BuyTicketRequest struct {
 	Flight string `json:"flight"`
 	Day    string `json:"day"`
 	User   string `json:"user"`
-	FT     bool   `json:"ft"` // Parâmetro de tolerância a falhas
+	FT     bool   `json:"ft,omitempty"`
 }
 
 type BuyTicketResponse struct {
@@ -116,11 +116,10 @@ func buyTicketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Processing ticket purchase: flight=%s, day=%s, user=%s, ft=%v", 
-		req.Flight, req.Day, req.User, req.FT)
+	log.Printf("Processing ticket purchase: flight=%s, day=%s, user=%s, ft=%t", req.Flight, req.Day, req.User, req.FT)
 
 	// Request 1: Consultar voo no AirlinesHub
-	flight, err := getFlightInfo(req.Flight, req.Day)
+	flight, err := getFlightInfo(req.Flight, req.Day, req.FT)
 	if err != nil {
 		log.Printf("Error getting flight info: %v", err)
 		respondError(w, fmt.Sprintf("Failed to get flight info: %v", err), http.StatusInternalServerError)
@@ -128,7 +127,7 @@ func buyTicketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Request 2: Consultar taxa de câmbio (com timeout de 1s)
-	exchangeRate, err := getExchangeRate()
+	exchangeRate, err := getExchangeRate(req.FT)
 	if err != nil {
 		log.Printf("Error getting exchange rate: %v", err)
 		respondError(w, fmt.Sprintf("Failed to get exchange rate: %v", err), http.StatusInternalServerError)
@@ -139,7 +138,7 @@ func buyTicketHandler(w http.ResponseWriter, r *http.Request) {
 	valueBRL := flight.Value * exchangeRate
 
 	// Request 3: Registrar venda no AirlinesHub
-	transactionID, err := sellTicket(req.Flight, req.Day)
+	transactionID, err := sellTicket(req.Flight, req.Day, req.FT)
 	if err != nil {
 		log.Printf("Error selling ticket: %v", err)
 		respondError(w, fmt.Sprintf("Failed to sell ticket: %v", err), http.StatusInternalServerError)
@@ -190,30 +189,76 @@ func buyTicketHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Purchase completed: transaction_id=%s, bonus_status=%s", transactionID, bonusStatus)
 }
 
-func getFlightInfo(flight, day string) (*FlightResponse, error) {
+func getFlightInfo(flight, day string, ft bool) (*FlightResponse, error) {
 	url := fmt.Sprintf("%s/flight?flight=%s&day=%s", airlinesHubURL, flight, day)
-
-	client := &http.Client{Timeout: 5 * time.Second}
+	
+	client := &http.Client{Timeout: 5 * time.Second} 
 	resp, err := client.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
+		// --- Falha na Tentativa 1 (Erro de Rede/Timeout) ---
+		log.Printf("[R1] Attempt 1 failed (timeout/net error): %v", err)
 
+		// Se FT (Tolerância a Falhas) estiver DESLIGADO, falha imediatamente.
+		if !ft {
+			return nil, fmt.Errorf("request failed: %w", err)
+		}
+
+		// --- FT LIGADO: Iniciar Lógica de Retry ---
+		log.Println("[FT R1] FT is ON: Using Retry Strategy (3 more attempts).")
+		
+		const maxRetries = 4
+		var lastErr = err
+
+		// Começa o loop a partir da segunda tentativa
+		for attempt := 2; attempt <= maxRetries; attempt++ {
+			time.Sleep(500 * time.Millisecond) // Espera antes de tentar de novo
+			log.Printf("[FT R1] Attempt %d/%d...", attempt, maxRetries)
+			
+			resp, err := client.Get(url)
+			if err != nil {
+				// Erro de rede/timeout
+				lastErr = fmt.Errorf("attempt %d: request failed (timeout/net error): %w", attempt, err)
+				log.Println(lastErr)
+				continue
+			}
+			// Se o status não for OK
+			if resp.StatusCode != http.StatusOK {
+				body, _ := io.ReadAll(resp.Body)
+				resp.Body.Close()
+				return nil, fmt.Errorf("service returned non-OK status %d: %s", resp.StatusCode, string(body))
+			}
+			// Sucesso na retentativa
+			var flightResp FlightResponse
+			if err := json.NewDecoder(resp.Body).Decode(&flightResp); err != nil {
+				resp.Body.Close()
+				return nil, fmt.Errorf("attempt %d: failed to decode response: %w", attempt, err)
+			}
+			resp.Body.Close()
+			log.Printf("[FT R1] Success on attempt %d", attempt)
+			return &flightResp, nil
+		}
+
+		return nil, fmt.Errorf("all retries failed for Request 1: %w", lastErr)
+	}
+
+	// --- Sucesso na Tentativa 1 (err == nil) ---
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		defer resp.Body.Close()
 		return nil, fmt.Errorf("service returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var flightResp FlightResponse
 	if err := json.NewDecoder(resp.Body).Decode(&flightResp); err != nil {
+		defer resp.Body.Close()
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-
+	
+	defer resp.Body.Close()
 	return &flightResp, nil
 }
 
-func getExchangeRate() (float64, error) {
+func getExchangeRate(ft bool) (float64, error) {
 	url := fmt.Sprintf("%s/convert", exchangeURL)
 
 	client := &http.Client{Timeout: 1 * time.Second}
@@ -245,7 +290,7 @@ func getExchangeRate() (float64, error) {
 	return rate, nil
 }
 
-func sellTicket(flight, day string) (string, error) {
+func sellTicket(flight, day string, ft bool) (string, error) {
 	url := fmt.Sprintf("%s/sell", airlinesHubURL)
 
 	reqBody := SellRequest{
@@ -278,8 +323,7 @@ func sellTicket(flight, day string) (string, error) {
 	return sellResp.ID, nil
 }
 
-// Request 4: Função básica de registro de bônus (sem retry)
-func registerBonus(user string, bonus int) error {
+func registerBonus(user string, bonus int, ft bool) error {
 	url := fmt.Sprintf("%s/bonus", fidelityURL)
 
 	reqBody := BonusRequest{
