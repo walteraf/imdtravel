@@ -5,8 +5,19 @@ Desenvolvido por:
 * André Luiz de Sena Liberato
 * Pedro de Andrade Cursino
 
-Este projeto é a implementação da versão "Baseline" + "COMFALHAS" do sistema IMDTravel, um sistema de microsserviços para compra de passagens aéreas.
+Este projeto é a implementação da versão "Baseline" + "COMFALHAS" + TOLERANTE do sistema IMDTravel, um sistema de microsserviços para compra de passagens aéreas.
 O objetivo é implementar a versão básica do sistema, com foco na comunicação entre os serviços via API REST e na execução de cada serviço em contêineres Docker distintos.
+
+## Versões do Sistema
+
+### BASELINE (Parte 1)
+Sistema básico funcionando sem falhas
+
+### COMFALHAS (Parte 2)
+Sistema com simulação de falhas implementadas
+
+### TOLERANTE (Parte 3)
+Sistema com mecanismos de tolerância a falhas
 
 ## 🏛️ Arquitetura do Sistema
 
@@ -32,13 +43,13 @@ O sistema é composto por quatro microsserviços, orquestrados pelo `docker-comp
     * **Endpoint:** `/bonus` (para registrar novos bônus)  e `/points` (para consultar pontuação).
     * **Arquivo:** `fidelity/main.go`
 
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 * **Linguagem:** Go (versão 1.25)
 * **Comunicação:** API REST 
 * **Contêineres:** Docker e Docker Compose 
 
-## 🚀 Como Executar o Sistema
+## Como Executar o Sistema
 
 ### Pré-requisitos
 
@@ -56,7 +67,7 @@ O sistema é composto por quatro microsserviços, orquestrados pelo `docker-comp
     ```
 
 4.  O sistema estará pronto. Os serviços estarão disponíveis nas portas `8080` (IMDTravel), `8081` (AirlinesHub), `8082` (Exchange) e `8083` (Fidelity).
-## 🔗 Endpoints
+## Endpoints
 - GET /health  
   Retorna 200 com `{"status":"healthy"}`
 
@@ -91,7 +102,7 @@ O sistema é composto por quatro microsserviços, orquestrados pelo `docker-comp
   ```
   Em erro retorna `success: false` e campo `error`.
 
-## 🧪 Exemplos curl
+## Exemplos curl
 Health:
 ```bash
 curl http://localhost:8080/health
@@ -104,7 +115,7 @@ curl -X POST http://localhost:8080/buyTicket \
   -d '{"flight":"FL123","day":"2025-11-01","user":"user-id"}'
 ```
 
-## 💣 Simulação de Falhas (Tolerância a Falhas)
+## Simulação de Falhas (Tolerância a Falhas)
 
 Este projeto implementa a simulação de falhas. A especificação `Fail (Type, Probability, Duration)` foi implementada da seguinte maneira:
 
@@ -135,3 +146,15 @@ Para falhas com `Duration` zero ou não definida (como `Omission` e `Crash`), a 
 * **Request 4: `Fail (Crash, 0.02, _)`**
     * **Local:** `fidelity/main.go` (no endpoint `/bonus`).
     * **Implementação:** *Stateless*. Há 2% de chance de o serviço forçar um `os.Exit(1)`, simulando um Crash. O `docker-compose.yml` está configurado com `restart: always` para que o contêiner reinicie automaticamente.
+
+## Mecanismos de Tolerância Implementados
+
+### Request 4: Sistema de Fila Assíncrona
+
+**Problema:** Serviço Fidelity pode crashar (2% probabilidade)
+
+**Solução:** 
+1. **Retry Imediato:** 3 tentativas com backoff exponencial
+2. **Fila Pendente:** Se falhar, adiciona à fila em memória
+3. **Processamento Background:** Goroutine processa fila a cada 10s
+4. **Venda não é bloqueada:** Cliente recebe resposta imediata
