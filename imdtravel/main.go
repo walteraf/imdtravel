@@ -263,12 +263,12 @@ func getExchangeRate(ft bool) (float64, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return 0, fmt.Errorf("service returned status %d: %s", resp.StatusCode, string(body))
+		return tryFallback(fmt.Errorf("service returned status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var rate float64
 	if err := json.NewDecoder(resp.Body).Decode(&rate); err != nil {
-		return 0, fmt.Errorf("failed to decode response: %w", err)
+		return tryFallback(fmt.Errorf("failed to decode response: %w", err))
 	}
 
 	updateExchangeHistory(rate)
@@ -299,8 +299,9 @@ func getAverageExchangeRate() (float64, error) {
 	for _, r := range exchangeHistory {
 		sum += r
 	}
+	avg := sum / float64(len(exchangeHistory))
 
-	return sum / float64(len(exchangeHistory)), nil
+	return math.Round(avg*1000) / 1000, nil
 }
 
 func sellTicket(flight, day string, ft bool) (string, error) {
