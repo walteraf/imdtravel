@@ -63,11 +63,8 @@ func getExchangeRateHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	faultR2Mutex.Unlock()
-	// rand.Intn(1001) gera um número entre [0, 1000]
-	// 5000 + [0, 1000] = [5000, 6000]
-	intValue := 5000 + rand.IntN(1001) // 1001 = (6000 - 5000 + 1)
 
-	// Convertemos para float dividindo por 1000.0
+	intValue := 5000 + rand.IntN(1001)
 	exchangeRate := float64(intValue) / 1000.0
 
 	log.Printf("Exchange rate generated: %.4f", exchangeRate)

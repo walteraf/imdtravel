@@ -67,7 +67,6 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getFlightHandler(w http.ResponseWriter, r *http.Request) {
-	// Falha: Fail(Omission, 0.2, 0s)
 	if rand.Float64() < 0.2 {
 		log.Printf("!!! FALHA SIMULADA (Omission): Request 1 (/flight) não irá responder.")
 		time.Sleep(6 * time.Second)
@@ -151,7 +150,6 @@ func sellTicketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verificar se o voo existe
 	key := req.Flight + "-" + req.Day
 	mu.RLock()
 	_, exists := flights[key]
@@ -162,7 +160,6 @@ func sellTicketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Gerar ID único para a transação
 	transactionID := uuid.New().String()
 
 	transaction := Transaction{
