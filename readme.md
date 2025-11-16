@@ -67,59 +67,99 @@ O sistema é composto por quatro microsserviços, orquestrados pelo `docker-comp
     ```
 
 4.  O sistema estará pronto. Os serviços estarão disponíveis nas portas `8080` (IMDTravel), `8081` (AirlinesHub), `8082` (Exchange) e `8083` (Fidelity).
-## Endpoints
-- GET /health  
-  Retorna 200 com `{"status":"healthy"}`
+## 🔌 Endpoints da API
 
-- POST /buyTicket  
-  Recebe JSON:
-  ```json
-  {
-    "flight": "FL123",
-    "day": "2025-11-01",
-    "user": "user-id"
-  }
-  ```
-  Fluxo:
-  1. Consulta voo em AIRLINESHUB (`/flight?flight=...&day=...`)
-  2. Consulta taxa de câmbio em EXCHANGE (`/convert`) com timeout 1s
-  3. Registra venda em AIRLINESHUB (`/sell`)
-  4. Registra bônus em FIDELITY (`/bonus`)
+### 1. Health Check
+Verifica se o serviço IMDTravel está operante. Útil para o Docker Compose e healthchecks de infraestrutura.
 
-  Resposta de sucesso (200):
-  ```json
-  {
-    "success": true,
-    "message": "Ticket purchased successfully",
-    "transaction_id": "tx-id",
-    "flight": "FL123",
-    "day": "2025-11-01",
-    "value_usd": 200.0,
-    "value_brl": 1000.0,
-    "exchange_rate": 5.0,
-    "bonus_points": 200
-  }
-  ```
-  Em erro retorna `success: false` e campo `error`.
+* **URL:** `/health`
+* **Método:** `GET`
+* **Sucesso (200 OK):**
+    ```json
+    {
+      "status": "healthy"
+    }
+    ```
 
-## Exemplos curl
-Health:
-```bash
-curl http://localhost:8080/health
+### 2. Comprar Passagem (`/buyTicket`)
+Endpoint principal que orquestra todo o fluxo de compra: consulta o voo, converte a moeda, efetua a venda e registra os pontos de fidelidade.
+
+* **URL:** `/buyTicket`
+* **Método:** `POST`
+* **Corpo da Requisição (JSON):**
+
+| Campo | Tipo | Obrigatório | Descrição |
+| :--- | :--- | :--- | :--- |
+| `flight` | `string` | Sim | Código do voo (ex: "AA123"). |
+| `day` | `string` | Sim | Data do voo (ex: "2025-11-15"). |
+| `user` | `string` | Sim | ID do usuário comprador. |
+| `ft` | `boolean` | Não | **Flag de Tolerância a Falhas**. Se `true`, ativa as estratégias de tolerância a falhas. |
+
+**Exemplo de Request:**
+```json
+{
+  "flight": "AA123",
+  "day": "2025-11-15",
+  "user": "walter_filho",
+  "ft": true
+}
 ```
 
-Comprar passagem:
-```bash
-curl -X POST http://localhost:8080/buyTicket \
-  -H "Content-Type: application/json" \
-  -d '{"flight":"FL123","day":"2025-11-01","user":"user-id"}'
+#### Respostas Possíveis
+
+**✅ 200 OK - Compra Realizada com Sucesso**
+Retornada quando todo o fluxo funciona. Se o sistema de fidelidade falhar mas `ft=true`, o `bonus_status` será "pending".
+
+```json
+{
+  "success": true,
+  "message": "Ticket purchased successfully",
+  "transaction_id": "550e8400-e29b-41d4-a716-446655440000",
+  "flight": "AA123",
+  "day": "2025-11-15",
+  "value_usd": 500.00,
+  "value_brl": 2650.50,
+  "exchange_rate": 5.301,
+  "bonus_points": 500,
+  "bonus_status": "processed" 
+}
+```
+
+**⚠️ 503 Service Unavailable - Falha Graciosa (Latência/Rede)**
+Ocorre quando `ft=true` e o serviço de vendas (AirlinesHub) demora mais de 2 segundos para responder (Timeout Protection) ou está indisponível.
+
+```json
+{
+  "success": false,
+  "error": "o sistema de vendas está instável no momento devido à alta latência. Por favor, tente novamente em alguns instantes"
+}
+```
+
+**❌ 500 Internal Server Error**
+Ocorre em falhas críticas de dependências quando a tolerância a falhas está desligada (`ft=false`).
+
+```json
+{
+  "success": false,
+  "error": "Failed to get flight info: request failed: ..."
+}
+```
+
+**❌ 400 Bad Request**
+Ocorre quando campos obrigatórios estão faltando no JSON enviado.
+
+```json
+{
+  "success": false,
+  "error": "Missing required fields: flight, day, user"
+}
 ```
 
 ## Simulação de Falhas (Tolerância a Falhas)
 
-Este projeto implementa a simulação de falhas. A especificação `Fail (Type, Probability, Duration)` foi implementada da seguinte maneira:
+A especificação `Fail (Type, Probability, Duration)` foi implementada da seguinte maneira:
 
-### Lógica de Implementação (Stateful)
+### Lógica de Implementação
 
 Para falhas com `Duration` (Duração) maior que zero (como `Error` e `Time`), a implementação é *stateful* (com estado):
 
@@ -149,12 +189,36 @@ Para falhas com `Duration` zero ou não definida (como `Omission` e `Crash`), a 
 
 ## Mecanismos de Tolerância Implementados
 
-### Request 4: Sistema de Fila Assíncrona
+### Request 1: Consulta de Voo (Retry Pattern)
+**Problema:** O serviço AirlinesHub pode sofrer de "Omissão" (não responder) ou falhas transientes de rede.
 
-**Problema:** Serviço Fidelity pode crashar (2% probabilidade)
+**Solução:** Implementação do padrão de **Retentativa (Retry)**.
+1.  **Detecção:** O sistema detecta erros de rede ou timeouts na conexão.
+2.  **Estratégia:** Caso a primeira tentativa falhe e a flag `FT` esteja ativa, o sistema realiza até **3 novas tentativas** automaticamente.
+3.  **Backoff:** Entre cada tentativa, existe uma pausa fixa de **500ms** (backoff simples) para evitar sobrecarregar o serviço instável.
+4.  **Resultado:** Aumenta a chance de sucesso em falhas temporárias sem intervenção do usuário.
 
-**Solução:** 
-1. **Retry Imediato:** 3 tentativas com backoff exponencial
-2. **Fila Pendente:** Se falhar, adiciona à fila em memória
-3. **Processamento Background:** Goroutine processa fila a cada 10s
-4. **Venda não é bloqueada:** Cliente recebe resposta imediata
+### Request 2: Conversão de Moeda (Fallback & Caching)
+**Problema:** O serviço Exchange pode entrar em estado de erro (HTTP 500) ou não responder.
+
+**Solução:** Implementação do padrão de **Fallback com Histórico em Memória**.
+1.  **Cache:** O sistema mantém em memória um histórico das últimas **10 taxas de câmbio** obtidas com sucesso.
+2.  **Fallback:** Se o serviço externo falhar (retornar erro ou timeout) e a flag `FT` estiver ativa, o sistema calcula a **média aritmética** das taxas armazenadas.
+3.  **Continuidade:** A operação de compra continua utilizando essa taxa média estimada, evitando que a queda de um serviço auxiliar impeça a venda principal.
+
+### Request 3: Venda de Passagem (Timeout & Fail Gracefully)
+**Problema:** O serviço AirlinesHub pode apresentar alta latência (>5s), o que travaria a thread do orquestrador e a experiência do usuário.
+
+**Solução:** Implementação de **Timeout Rígido** e **Falha Graciosa**.
+1.  **Proteção de Latência:** O cliente HTTP foi configurado com um **timeout rígido de 2 segundos**. Se o serviço demorar mais que isso, a conexão é abortada imediatamente para liberar recursos do servidor.
+2.  **Tratamento de Erro:** Diferente de um erro genérico (500), o sistema captura o timeout.
+3.  **Falha Graciosa:** Retorna ao usuário uma mensagem amigável e semântica (HTTP 503 - Service Unavailable), informando: *"o sistema de vendas está instável no momento devido à alta latência"*, instruindo-o a tentar novamente mais tarde.
+
+### Request 4: Bonificação (Async Queue & Eventual Consistency)
+**Problema:** O serviço Fidelity pode sofrer um Crash fatal (encerrar o processo).
+
+**Solução:** Implementação de **Processamento Assíncrono** e **Consistência Eventual**.
+1.  **Retry Imediato:** Tenta registrar o bônus 3 vezes com backoff exponencial curto.
+2.  **Fila em Memória:** Se todas as tentativas falharem, o bônus não é perdido; ele é adicionado a uma fila segura (`pendingBonuses`) em memória.
+3.  **Desacoplamento:** A falha no bônus **não impede a venda**. O cliente recebe a confirmação de sucesso da compra imediatamente, com o status do bônus marcado como `"pending"`.
+4.  **Reconciliação:** Uma *Goroutine* em background verifica a fila a cada 10 segundos e reprocessa as bonificações pendentes assim que o serviço Fidelity volta a ficar online.
